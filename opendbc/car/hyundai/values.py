@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from enum import IntFlag
+from enum import IntFlag, Enum
 
 from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, uds
 from opendbc.car.lateral import AngleSteeringLimitsVM
@@ -370,6 +370,8 @@ class CAR(Platforms):
     [
       HyundaiCarDocs("Hyundai Santa Fe Hybrid (with HDA II & LFA2) 2024-25", "Highway Driving Assist II & Lane Follow Assist 2",
                      car_parts=CarParts.common([CarHarness.hyundai_p])),
+      HyundaiCarDocs("Hyundai Santa Fe Hybrid (without HDA II, LFA2) 2026", "Lane Follow Assist 2",
+                     car_parts=CarParts.common([CarHarness.hyundai_l])),
     ],
     CarSpecs(wheelbase=2.81, steerRatio=13.72),
     flags=HyundaiFlags.CANFD_ANGLE_STEERING,
@@ -577,6 +579,13 @@ class CAR(Platforms):
     ],
     # weight from SX and above trims, average of FWD and AWD version, steering ratio according to Kia News https://www.kiamedia.com/us/en/models/sportage/2023/specifications
     CarSpecs(wheelbase=2.756, steerRatio=13.6),
+  )
+  KIA_SPORTAGE_2026 = HyundaiCanFDPlatformConfig(
+    [
+      HyundaiCarDocs("Kia Sportage (without HDA II) 2026", car_parts=CarParts.common([CarHarness.hyundai_n])),
+    ],
+    CarSpecs(wheelbase=2.756, steerRatio=13.7),
+    flags=HyundaiFlags.CANFD_ANGLE_STEERING,
   )
   KIA_SPORTAGE_HEV_2026 = HyundaiCanFDPlatformConfig(
     [
@@ -997,3 +1006,14 @@ UNSUPPORTED_LONGITUDINAL_CAR = {
 NON_SCC_CAR = CAR.with_sp_flags(HyundaiFlagsSP.NON_SCC)
 
 DBC = CAR.create_dbc_map()
+
+
+class ActvACISta(Enum):
+  INIT = 0
+  INACTIVE = 1
+  ACTIVE35_ACTIVE = 2
+
+
+class ESA_ActvSta(Enum):
+  INACTIVE = 0
+  ACTIVE = 1
