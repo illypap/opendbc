@@ -542,6 +542,63 @@ class TestHyundaiCanfdLKASteeringAltAngle(TestHyundaiCanfdAngleSteering):
     pass
 
 
+# HDA1 (LFA steering) angle steering cars steer with LFA_ALT, these all have camera SCC
+@parameterized_class([combo for combo in ALL_GAS_EV_HYBRID_COMBOS if combo["SCC_BUS"] == 2])
+class TestHyundaiCanfdLFASteeringAngle(TestHyundaiCanfdAngleSteering):
+
+  TX_MSGS = [[0x12A, 0], [0x1A0, 1], [0x1CF, 0], [0x1E0, 0], [0xCB, 0]]
+  RELAY_MALFUNCTION_ADDRS = {0: (0x12A, 0x1E0, 0xCB)}  # LFA, LFAHDA_CLUSTER, LFA_ALT
+  FWD_BLACKLISTED_ADDRS = {2: [0x12A, 0x1E0, 0xCB]}
+
+  STEER_MSG = "LFA_ALT"
+  BUTTONS_TX_BUS = 2
+  EXTRA_SAFETY_PARAM: int
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    if cls.__name__ == "TestHyundaiCanfdLFASteeringAngle":
+      cls.packer = None
+      raise unittest.SkipTest
+
+  @property
+  def SAFETY_PARAM(self):
+    return HyundaiSafetyFlags.CANFD_ANGLE_STEERING | self.EXTRA_SAFETY_PARAM
+
+  def _angle_cmd_msg(self, angle: float, enabled: bool, increment_timer: bool = True, gain: float = 0.0):
+    if increment_timer:
+      self.safety.set_timer(self.cnt_angle_cmd * int(1e6 / self.LATERAL_FREQUENCY))
+      self.__class__.cnt_angle_cmd += 1
+    values = {"ADAS_StrAnglReqVal": angle, "ADAS_ActvACILvl2Sta": 2 if enabled else 1,
+              "ADAS_ACIAnglTqRedcGainVal": gain}
+    return self.packer.make_can_msg_safety(self.STEER_MSG, self.STEER_BUS, values)
+
+  # Angle steering does not use torque — override inherited torque tests
+  def test_steer_safety_check(self):
+    pass
+
+  def test_non_realtime_limit_up(self):
+    pass
+
+  def test_steer_req_bit(self):
+    pass
+
+  def test_steer_req_bit_frames(self):
+    pass
+
+  def test_steer_req_bit_multi_invalid(self):
+    pass
+
+  def test_steer_req_bit_realtime(self):
+    pass
+
+  def test_against_torque_driver(self):
+    pass
+
+  def test_realtime_limits(self):
+    pass
+
+
 class TestHyundaiCanfdLKASteeringLongEV(HyundaiLongitudinalBase, TestHyundaiCanfdLKASteeringEV):
 
   SAFETY_PARAM = HyundaiSafetyFlags.CANFD_LKA_STEER_MSG | HyundaiSafetyFlags.LONG | HyundaiSafetyFlags.EV_GAS
