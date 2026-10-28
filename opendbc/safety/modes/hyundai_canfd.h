@@ -173,15 +173,26 @@ static bool hyundai_canfd_tx_hook(const CANPacket_t *msg) {
 
   bool tx = true;
 
-  // HDA1 steering
-  if ((msg->addr == 0xCBU) && hyundai_canfd_angle_steering) {
-    const int lfa_angle_active = (msg->data[3] >> 4U);
-    const bool steer_angle_req = lfa_angle_active == 2;
+  // HDA1 steering: LFA_ALT, angle steering cars only
+  if (msg->addr == 0xCBU) {
+    if (hyundai_canfd_angle_steering) {
+      const int lfa_angle_active = (msg->data[3] >> 4U);
+      const bool steer_angle_req = lfa_angle_active == 2;
 
-    int desired_angle = (((uint32_t)(msg->data[5] & 0x3FU)) << 8) | (uint32_t)msg->data[4];
-    desired_angle = to_signed(desired_angle, 14);
+      int desired_angle = (((uint32_t)(msg->data[5] & 0x3FU)) << 8) | (uint32_t)msg->data[4];
+      desired_angle = to_signed(desired_angle, 14);
 
-    if (steer_angle_cmd_checks_vm(desired_angle, steer_angle_req, HYUNDAI_CANFD_ANGLE_STEERING_LIMITS, HYUNDAI_STEERING_PARAMS)) {
+      // ADAS_ACIAnglTqRedcGainVal: bit 48, 8 bits, unsigned. Raw 0-250 valid, 251-255 reserved.
+      const uint8_t gain_raw = msg->data[6];
+      bool gain_violation = gain_raw > 250U;
+      if (!steer_angle_req && (gain_raw != 0U)) {
+        gain_violation = true;
+      }
+
+      if (steer_angle_cmd_checks_vm(desired_angle, steer_angle_req, HYUNDAI_CANFD_ANGLE_STEERING_LIMITS, *HYUNDAI_STEERING_PARAMS) || gain_violation) {
+        tx = false;
+      }
+    } else {
       tx = false;
     }
   }
