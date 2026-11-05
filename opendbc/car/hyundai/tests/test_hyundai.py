@@ -74,6 +74,43 @@ class TestHyundaiFingerprint(unittest.TestCase):
       CP = CarInterface.get_params(CAR.HYUNDAI_SONATA, fingerprint, [], False, False, False)
       assert CP.radarUnavailable != radar
 
+  def test_ccnc_detection(self):
+    # ccNC is only enabled on HDA1 angle steering cars when both cluster messages are seen from the camera
+    for car_model, cam_msgs, expected in [
+      (CAR.HYUNDAI_IONIQ_5_PE, [0xCB, 0x161, 0x162], True),
+      (CAR.HYUNDAI_IONIQ_5_PE, [0xCB, 0x161], False),
+      (CAR.HYUNDAI_IONIQ_5_PE, [0x50, 0x110, 0x161, 0x162], False),  # LKA steering (HDA2)
+      (CAR.KIA_EV6, [0x161, 0x162], False),  # torque steering
+    ]:
+      fingerprint = gen_empty_fingerprint()
+      fingerprint[CanBus(None, fingerprint).CAM] = cam_msgs
+      CP = CarInterface.get_params(car_model, fingerprint, [], False, False, False)
+      assert bool(CP.flags & HyundaiFlags.CCNC) == expected, (car_model, cam_msgs)
+      assert bool(CP.safetyConfigs[-1].safetyParam & HyundaiSafetyFlags.CCNC) == expected, (car_model, cam_msgs)
+
+  def test_ccnc_cluster_messages(self):
+    from opendbc.can import CANPacker, CANParser
+    from opendbc.car.hyundai.hyundaicanfd import create_ccnc
+    from opendbc.car.structs import CarControl, CarState
+
+    dbc = "hyundai_canfd_generated"
+    CAN = CanBus(None, gen_empty_fingerprint())
+    out = CarState(vEgo=20., steeringAngleDeg=10., leftBlindspot=True)
+
+    for op_long in (False, True):
+      parser = CANParser(dbc, [("CCNC_0x161", 0), ("CCNC_0x162", 0)], CAN.ECAN)
+      msg_161 = dict.fromkeys(parser.vl["CCNC_0x161"], 0)
+      msg_162 = {**dict.fromkeys(parser.vl["CCNC_0x162"], 0), "FAULT_LFA": 1, "FAULT_DAS": 1, "FAULT_HDA": 1}
+      msgs = create_ccnc(CANPacker(dbc), CAN, op_long, True, CarControl.HUDControl(leftLaneVisible=True, rightLaneVisible=True),
+                         True, False, msg_161, msg_162, False, out, True, True)
+      assert {addr for addr, _, _ in msgs} == {0x161, 0x162}
+      parser.update([(0, msgs)])
+      for f in ("FAULT_LSS", "FAULT_HDA", "FAULT_DAS", "FAULT_LFA", "FAULT_DAW", "FAULT_ESS"):
+        assert parser.vl["CCNC_0x162"][f] == 0, f
+      assert parser.vl["CCNC_0x161"]["LFA_ICON"] == 2
+      assert parser.vl["CCNC_0x161"]["LCA_LEFT_ICON"] == 1  # blindspot
+      assert parser.vl["CCNC_0x161"]["LCA_LEFT_ARROW"] == 2
+
   def test_alternate_limits(self):
     # Alternate lateral control limits, for high torque cars, verify Panda safety mode flag is set
     fingerprint = gen_empty_fingerprint()

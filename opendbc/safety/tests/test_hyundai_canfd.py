@@ -599,6 +599,26 @@ class TestHyundaiCanfdLFASteeringAngle(TestHyundaiCanfdAngleSteering):
     pass
 
 
+# ccNC cars: openpilot replaces the camera's cluster messages
+@parameterized_class([combo for combo in ALL_GAS_EV_HYBRID_COMBOS if combo["SCC_BUS"] == 2])
+class TestHyundaiCanfdLFASteeringAngleCCNC(TestHyundaiCanfdLFASteeringAngle):
+
+  TX_MSGS = [[0x12A, 0], [0x1A0, 1], [0x1CF, 0], [0x1E0, 0], [0xCB, 0], [0x161, 0], [0x162, 0]]
+  RELAY_MALFUNCTION_ADDRS = {0: (0x12A, 0x1E0, 0xCB, 0x161, 0x162)}  # LFA, LFAHDA_CLUSTER, LFA_ALT, CCNC_0x161, CCNC_0x162
+  FWD_BLACKLISTED_ADDRS = {2: [0x12A, 0x1E0, 0xCB, 0x161, 0x162]}
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    if cls.__name__ == "TestHyundaiCanfdLFASteeringAngleCCNC":
+      cls.packer = None
+      raise unittest.SkipTest
+
+  @property
+  def SAFETY_PARAM(self):
+    return HyundaiSafetyFlags.CANFD_ANGLE_STEERING | HyundaiSafetyFlags.CCNC | self.EXTRA_SAFETY_PARAM
+
+
 class TestHyundaiCanfdLKASteeringLongEV(HyundaiLongitudinalBase, TestHyundaiCanfdLKASteeringEV):
 
   SAFETY_PARAM = HyundaiSafetyFlags.CANFD_LKA_STEER_MSG | HyundaiSafetyFlags.LONG | HyundaiSafetyFlags.EV_GAS

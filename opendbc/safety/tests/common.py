@@ -1013,6 +1013,10 @@ class SafetyTest(SafetyTestBase):
             if attr == 'TestVolkswagenMqbLongSafety' and current_test.startswith('TestHondaNidec'):
               tx = list(filter(lambda m: m[0] not in [0x30c, ], tx))
 
+            # Hyundai CAN FD ccNC cluster message overlaps with the Subaru Preglobal lateral actuating message
+            if attr.startswith('TestHyundaiCanfdLFASteeringAngleCCNC') and current_test.startswith('TestSubaruPreglobal'):
+              tx = list(filter(lambda m: m[0] not in [0x161, ], tx))
+
             # Volkswagen MQB and Honda Bosch Radarless ACC HUD messages overlap
             if attr == 'TestVolkswagenMqbLongSafety' and current_test.startswith('TestHondaBoschRadarless'):
               tx = list(filter(lambda m: m[0] not in [0x30c, ], tx))

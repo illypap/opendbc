@@ -70,6 +70,9 @@ class CarInterface(CarInterfaceBase):
           ret.flags |= HyundaiFlags.CANFD_CAMERA_SCC.value
         if 0xCB in fingerprint[CAN.CAM]:  # LFA_ALT
           ret.flags |= HyundaiFlags.SEND_LFA.value
+        if ret.flags & HyundaiFlags.CANFD_ANGLE_STEERING and ret.flags & HyundaiFlags.CANFD_CAMERA_SCC and \
+           0x161 in fingerprint[CAN.CAM] and 0x162 in fingerprint[CAN.CAM]:  # CCNC_0x161, CCNC_0x162
+          ret.flags |= HyundaiFlags.CCNC.value
 
       # Some LKA steering cars have alternative messages for gear checks
       # ICE cars do not have 0x130; GEARS message on 0x40 or 0x70 instead
@@ -95,6 +98,8 @@ class CarInterface(CarInterfaceBase):
       if ret.flags & HyundaiFlags.CANFD_ANGLE_STEERING:
         ret.steerControlType = structs.CarParams.SteerControlType.angle
         ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.CANFD_ANGLE_STEERING.value
+      if ret.flags & HyundaiFlags.CCNC:
+        ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.CCNC.value
 
     else:
       # Shared configuration for non CAN-FD cars

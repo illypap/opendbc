@@ -89,6 +89,7 @@ class HyundaiSafetyFlags(IntFlag):
   FCEV_GAS = 256
   ALT_LIMITS_2 = 512
   CANFD_ANGLE_STEERING = 1024
+  CCNC = 2048
 
 
 # Hyundai/Kia/Genesis SCC (Smart Cruise Control) and steering architecture:
@@ -173,6 +174,9 @@ class HyundaiFlags(IntFlag):
   HAS_BSM = 2 ** 27  # blind spot monitoring
 
   CANFD_ANGLE_STEERING = 2 ** 28
+
+  # ccNC infotainment/cluster: openpilot rewrites the camera's cluster messages (CCNC_0x161, CCNC_0x162)
+  CCNC = 2 ** 29
 
 
 @dataclass
